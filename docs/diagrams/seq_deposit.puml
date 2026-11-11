@@ -1,0 +1,68 @@
+@startuml seq_deposit
+!include _style.iuml
+autonumber
+title Sequence Diagram 2 - Deposit Funds
+
+actor Customer
+boundary ":CustomerDashboardView" as Dash
+boundary ":TransactionDialog" as Dlg
+control ":AccountController" as Ctrl
+entity ":CustomerDAO" as CustDAO
+entity ":AccountDAO" as AccDAO
+entity "acc:Account" as Acc
+entity "tx:Transaction" as Tx
+database "H2 Database" as DB
+
+Customer -> Dash : select account, click "Deposit"
+activate Dash
+Dash -> Dlg ** : new TransactionDialog(controller, summary, isDeposit=true)
+Dash -> Dlg : showAndWait()
+activate Dlg
+Customer -> Dlg : enter amount "1,000.00" and reference, click OK
+Dlg -> Ctrl : deposit(accountNumber, "1,000.00", reference)
+activate Ctrl
+Ctrl -> Ctrl : InputValidator.amount(text)
+
+alt amount not a positive number
+  Ctrl --> Dlg : throw ValidationException
+  Dlg -> Dlg : show error, keep dialog open
+else amount valid
+  Ctrl -> CustDAO : findById(session.userId)
+  CustDAO -> DB : SELECT customer
+  CustDAO --> Ctrl : customer
+  Ctrl -> AccDAO : findByCustomer(customer)
+  AccDAO -> DB : SELECT accounts WHERE customer_id = ?
+  AccDAO --> Ctrl : accounts (correct subclasses)
+  Ctrl -> Ctrl : ownedAccount(customer, accountNumber)
+
+  Ctrl -> Acc : deposit(amount, reference)
+  activate Acc
+  Acc -> Acc : validateAmount(amount)
+  Acc -> Acc : credit(): balance = balance + amount
+  Acc -> Tx ** : new Transaction(DEPOSIT, amount, balanceAfter)
+  Acc --> Ctrl : tx
+  deactivate Acc
+
+  Ctrl -> AccDAO : applyTransaction(acc, tx)
+  activate AccDAO
+  AccDAO -> DB : setAutoCommit(false)
+  AccDAO -> DB : UPDATE accounts SET balance = ?
+  AccDAO -> DB : INSERT INTO transactions (...)
+  alt both statements succeed
+    AccDAO -> DB : commit()
+    AccDAO --> Ctrl : ok
+    Ctrl --> Dlg : AccountSummary (new balance)
+    Dlg --> Dash : result
+    Dash -> Dash : "Deposit successful" alert,\nrefresh table
+  else SQL error
+    AccDAO -> DB : rollback()
+    AccDAO --> Ctrl : DataAccessException
+    Ctrl --> Dlg : throw BankingException("No money was moved")
+    Dlg -> Dlg : show error
+  end
+  deactivate AccDAO
+end
+deactivate Ctrl
+deactivate Dlg
+deactivate Dash
+@enduml

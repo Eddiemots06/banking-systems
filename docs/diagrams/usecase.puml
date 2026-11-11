@@ -1,0 +1,65 @@
+@startuml usecase
+!include _style.iuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "User" as User
+actor "Customer" as Customer
+actor "Administrator" as Admin
+User <|-- Customer
+User <|-- Admin
+
+rectangle "BAC Bank - Banking System" {
+  usecase "Log In" as UC_Login
+  usecase "Log Out" as UC_Logout
+  usecase "Lock Out After\n3 Failed Attempts" as UC_Lock
+  usecase "Register as Customer" as UC_Register
+  usecase "View My Accounts" as UC_View
+  usecase "Open Account" as UC_Open
+  usecase "Open Savings Account" as UC_OpenSav
+  usecase "Open Investment Account" as UC_OpenInv
+  usecase "Open Cheque Account" as UC_OpenChq
+  usecase "Make Opening Deposit\n(min BWP 500)" as UC_MinDep
+  usecase "Verify Employment" as UC_Verify
+  usecase "Update Employment\nDetails" as UC_Employ
+  usecase "Deposit Funds" as UC_Deposit
+  usecase "Withdraw Funds" as UC_Withdraw
+  usecase "Reject: Insufficient\nFunds" as UC_NSF
+  usecase "Validate Amount" as UC_Validate
+  usecase "Record Transaction" as UC_Record
+  usecase "View Transaction\nHistory" as UC_History
+  usecase "View All Accounts" as UC_All
+  usecase "Pay Monthly Interest" as UC_Interest
+  usecase "Calculate Interest\n(5% / 0.05%)" as UC_Calc
+}
+
+User --> UC_Login
+User --> UC_Logout
+Customer --> UC_Register
+Customer --> UC_View
+Customer --> UC_Open
+Customer --> UC_Deposit
+Customer --> UC_Withdraw
+Customer --> UC_History
+Admin --> UC_All
+Admin --> UC_Interest
+
+UC_Lock .> UC_Login : <<extend>>\n(3 wrong passwords)
+
+UC_OpenSav --|> UC_Open
+UC_OpenInv --|> UC_Open
+UC_OpenChq --|> UC_Open
+UC_OpenInv ..> UC_MinDep : <<include>>
+UC_OpenChq ..> UC_Verify : <<include>>
+UC_OpenChq <.. UC_Employ : <<extend>>\n(not employed)
+
+UC_Deposit ..> UC_Validate : <<include>>
+UC_Withdraw ..> UC_Validate : <<include>>
+UC_Deposit ..> UC_Record : <<include>>
+UC_Withdraw ..> UC_Record : <<include>>
+UC_Withdraw <.. UC_NSF : <<extend>>\n(amount > balance)
+
+UC_Interest ..> UC_Calc : <<include>>
+UC_Interest ..> UC_Record : <<include>>
+Customer --> UC_Employ
+@enduml

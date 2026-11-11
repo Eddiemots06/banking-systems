@@ -1,0 +1,185 @@
+@startuml class
+!include _style.iuml
+skinparam classAttributeIconSize 0
+set separator none
+hide empty members
+
+package "com.bac.banking.model" {
+
+abstract class User <<abstract>> {
+  - username : String
+  - passwordHash : String
+  - salt : String
+  # User(username, passwordHash, salt)
+  + authenticate(plainPassword : String) : boolean
+  + changePassword(newPassword : String) : void
+  + {abstract} getRole() : String
+  + {abstract} getDisplayName() : String
+  + getUsername() : String
+}
+
+class Customer {
+  - customerId : Long
+  - firstName : String
+  - surname : String
+  - nationalId : String
+  - address : String
+  - phone : String
+  - email : String
+  + getRole() : String
+  + getDisplayName() : String
+  ~ addAccount(account : Account) : void
+  + getAccounts() : List<Account>
+  + findAccount(accountNumber : String) : Optional<Account>
+  + hasAccountOfType(type : AccountType) : boolean
+  + getTotalBalance() : BigDecimal
+  + isEmployed() : boolean
+}
+
+class Administrator {
+  - adminId : Long
+  - fullName : String
+  + getRole() : String
+  + getDisplayName() : String
+}
+
+class Employer {
+  - companyName : String
+  - companyAddress : String
+  - jobTitle : String
+}
+
+interface Depositable <<interface>> {
+  + deposit(amount : BigDecimal) : Transaction
+  + deposit(amount : BigDecimal, reference : String) : Transaction
+}
+
+interface Withdrawable <<interface>> {
+  + withdraw(amount : BigDecimal) : Transaction
+  + withdraw(amount : BigDecimal, reference : String) : Transaction
+}
+
+interface InterestBearing <<interface>> {
+  + getMonthlyInterestRate() : BigDecimal
+  + getBalance() : BigDecimal
+  + calculateMonthlyInterest() : BigDecimal
+  + creditInterest(interest : BigDecimal) : Transaction
+}
+
+abstract class Account <<abstract>> {
+  - accountNumber : String
+  - owner : Customer
+  - branch : String
+  - balance : BigDecimal
+  - dateOpened : LocalDate
+  # Account(accountNumber, owner, branch)
+  # Account(accountNumber, owner, branch, balance, dateOpened)
+  + {abstract} getAccountType() : AccountType
+  + {abstract} getAccountRules() : String
+  + deposit(amount : BigDecimal) : Transaction
+  + deposit(amount : BigDecimal, reference : String) : Transaction
+  # credit(amount, type, reference) : Transaction
+  # debit(amount, type, reference) : Transaction
+  # {static} validateAmount(amount : BigDecimal) : BigDecimal
+  + getBalance() : BigDecimal
+  + canWithdraw() : boolean
+  + earnsInterest() : boolean
+}
+
+class SavingsAccount {
+  + {static} MONTHLY_RATE : BigDecimal = 0.0005
+  + getAccountType() : AccountType
+  + getAccountRules() : String
+  + getMonthlyInterestRate() : BigDecimal
+  + creditInterest(interest : BigDecimal) : Transaction
+}
+
+class InvestmentAccount {
+  + {static} MONTHLY_RATE : BigDecimal = 0.05
+  + {static} MINIMUM_OPENING_DEPOSIT : BigDecimal = 500.00
+  + InvestmentAccount(accountNumber, owner, branch, openingDeposit)
+  + getAccountType() : AccountType
+  + getAccountRules() : String
+  + getMonthlyInterestRate() : BigDecimal
+  + creditInterest(interest : BigDecimal) : Transaction
+  + withdraw(amount : BigDecimal) : Transaction
+  + withdraw(amount : BigDecimal, reference : String) : Transaction
+}
+
+class ChequeAccount {
+  + ChequeAccount(accountNumber, owner, branch)
+  + getEmployer() : Employer
+  + getAccountType() : AccountType
+  + getAccountRules() : String
+  + withdraw(amount : BigDecimal) : Transaction
+  + withdraw(amount : BigDecimal, reference : String) : Transaction
+  + depositSalary(amount : BigDecimal) : Transaction
+}
+
+class Transaction {
+  - transactionId : Long
+  - accountNumber : String
+  - type : TransactionType
+  - amount : BigDecimal
+  - balanceAfter : BigDecimal
+  - timestamp : LocalDateTime
+  - reference : String
+}
+
+class InterestPayment {
+  - status : Status
+  - amount : BigDecimal
+  - failureReason : String
+  + calculate() : void
+  + credit() : Transaction
+  + markRecorded() : void
+  + fail(reason : String) : void
+  + isFinished() : boolean
+}
+
+class Bank {
+  - name : String
+  - swiftCode : String
+  + prepareMonthlyInterest(accounts : List<Account>) : List<InterestPayment>
+}
+
+enum AccountType <<enumeration>> {
+  SAVINGS
+  INVESTMENT
+  CHEQUE
+}
+
+enum TransactionType <<enumeration>> {
+  OPENING_DEPOSIT
+  DEPOSIT
+  WITHDRAWAL
+  INTEREST
+}
+}
+
+User <|-- Customer
+User <|-- Administrator
+
+Depositable <|.. Account
+Account <|-- SavingsAccount
+Account <|-- InvestmentAccount
+Account <|-- ChequeAccount
+InterestBearing <|.. SavingsAccount
+InterestBearing <|.. InvestmentAccount
+Withdrawable <|.. InvestmentAccount
+Withdrawable <|.. ChequeAccount
+
+Customer "1" *-- "0..*" Account : holds >
+Customer "1" o-- "0..1" Employer : works for >
+Account "1" *-- "0..*" Transaction : records >
+Account ..> AccountType
+Transaction --> "1" TransactionType
+InterestPayment --> "1" InterestBearing : pays >
+Bank ..> InterestPayment : creates >
+
+note bottom of Account
+  An Account cannot exist without a Customer:
+  the owner is a required constructor argument
+  (composition, filled diamond).
+end note
+@enduml

@@ -1,0 +1,78 @@
+@startuml architecture
+!include _style.iuml
+allowmixing
+skinparam classAttributeIconSize 0
+hide empty members
+hide circle
+title Layered Architecture (Boundary - Control - Entity + DAO)
+
+package "Boundary layer (JavaFX)  com.bac.banking.view" as V {
+  class LoginView
+  class RegisterView
+  class CustomerDashboardView
+  class OpenAccountDialog
+  class TransactionDialog
+  class EmploymentDialog
+  class StatementView
+  class AdminDashboardView
+  class ViewNavigator
+}
+
+package "Control layer  com.bac.banking.controller" as C {
+  class LoginController
+  class CustomerController
+  class AccountController
+  class AdminController
+  class Session
+  class "AccountSummary / TransactionRow\n(DTO records)" as DTO
+}
+
+package "Entity layer (domain model)  com.bac.banking.model" as M {
+  class "Customer, Account, SavingsAccount,\nInvestmentAccount, ChequeAccount,\nTransaction, InterestPayment, Bank" as Model
+}
+
+package "Data access layer (JDBC)  com.bac.banking.dao" as D {
+  interface "DAO<T,K>" as DAO
+  class CustomerDAO
+  class AccountDAO
+  class TransactionDAO
+  class AdministratorDAO
+  class DatabaseManager
+}
+
+database "H2 (./data/bankdb)" as H2
+
+LoginView --> LoginController
+RegisterView --> CustomerController
+CustomerDashboardView --> AccountController
+CustomerDashboardView --> CustomerController
+OpenAccountDialog --> AccountController
+TransactionDialog --> AccountController
+EmploymentDialog --> CustomerController
+StatementView --> AccountController
+AdminDashboardView --> AdminController
+CustomerDashboardView ..> DTO : displays
+AccountController ..> DTO : returns
+AccountController --> Model : calls business methods
+AdminController --> Model
+AccountController --> AccountDAO : load / save
+LoginController --> CustomerDAO
+CustomerController --> CustomerDAO
+AdminController --> AccountDAO
+AccountDAO --> Model : builds objects
+DAO <|.. CustomerDAO
+DAO <|.. AccountDAO
+DAO <|.. TransactionDAO
+DAO <|.. AdministratorDAO
+CustomerDAO --> DatabaseManager
+AccountDAO --> DatabaseManager
+DatabaseManager --> H2 : JDBC
+
+note bottom of DTO
+  Views only call controllers and only see DTOs:
+  no business rules, no SQL in the GUI.
+end note
+note bottom of Model
+  Model has no JavaFX or JDBC imports.
+end note
+@enduml

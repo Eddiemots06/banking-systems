@@ -1,0 +1,60 @@
+@startuml seq_login
+!include _style.iuml
+autonumber
+title Sequence Diagram 1 - Log In
+
+actor Customer
+boundary ":LoginView" as View
+control ":LoginController" as Ctrl
+entity ":AdministratorDAO" as AdminDAO
+entity ":CustomerDAO" as CustDAO
+database "H2 Database" as DB
+entity "c:Customer" as Cust
+control ":Session" as Session
+boundary ":ViewNavigator" as Nav
+
+Customer -> View : enter username and password,\nclick "Log in"
+activate View
+View -> Ctrl : login(username, password)
+activate Ctrl
+Ctrl -> Ctrl : check failedAttempts < 3\nInputValidator.required(...)
+
+alt fields empty
+  Ctrl --> View : throw ValidationException("Username is required.")
+  View -> View : errorLabel.setText(message)
+else fields filled
+  Ctrl -> AdminDAO : findByUsername(username)
+  activate AdminDAO
+  AdminDAO -> DB : SELECT ... FROM administrators WHERE username = ?
+  DB --> AdminDAO : no row
+  AdminDAO --> Ctrl : Optional.empty()
+  deactivate AdminDAO
+
+  Ctrl -> CustDAO : findByUsername(username)
+  activate CustDAO
+  CustDAO -> DB : SELECT ... FROM customers LEFT JOIN employers\nWHERE username = ?
+  DB --> CustDAO : customer row
+  CustDAO -> Cust ** : new Customer(...)
+  CustDAO --> Ctrl : Optional.of(c)
+  deactivate CustDAO
+
+  Ctrl -> Cust : authenticate(password)
+  activate Cust
+  Cust -> Cust : PasswordUtil.matches(password, salt, hash)
+  Cust --> Ctrl : true / false
+  deactivate Cust
+
+  alt password correct
+    Ctrl -> Session : start(id, username, name, CUSTOMER)
+    Ctrl --> View : Role.CUSTOMER
+    View -> Nav : showCustomerDashboard()
+    Nav --> Customer : "My Accounts" screen
+  else password wrong
+    Ctrl -> Ctrl : failedAttempts++
+    Ctrl --> View : throw ValidationException(\n"Invalid username or password. Attempts left: n")
+    View -> View : show error, clear password field
+  end
+end
+deactivate Ctrl
+deactivate View
+@enduml

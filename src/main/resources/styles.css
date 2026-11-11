@@ -1,0 +1,28 @@
+/* BAC Bank - JavaFX stylesheet */
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 13px;
+    -fx-accent: #0f6e6e;
+    -fx-focus-color: #0f6e6e;
+}
+.app-background { -fx-background-color: #f2f5f5; }
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 14, 0, 0, 3);
+}
+.top-bar { -fx-background-color: #0f6e6e; }
+.top-bar .heading { -fx-text-fill: white; }
+.heading { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #12403f; }
+.subtitle { -fx-text-fill: #5b6b6b; }
+.section { -fx-font-weight: bold; -fx-text-fill: #0f6e6e; -fx-padding: 8 0 0 0; }
+.hint { -fx-text-fill: #5b6b6b; }
+.total { -fx-font-size: 15px; -fx-font-weight: bold; }
+.error-text { -fx-text-fill: #b3261e; }
+.button.primary {
+    -fx-background-color: #0f6e6e;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.button.primary:hover { -fx-background-color: #0b5656; }
+.table-view { -fx-background-radius: 6; }

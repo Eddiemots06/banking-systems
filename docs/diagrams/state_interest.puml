@@ -1,0 +1,33 @@
+@startuml state_interest
+!include _style.iuml
+title State Diagram - InterestPayment (Pay Monthly Interest)
+hide empty description
+
+[*] --> Pending : new InterestPayment(account)\n[account is InterestBearing]
+
+state Pending
+state Calculated : entry / amount = balance x monthlyRate
+state Skipped : amount = 0.00
+state Credited : entry / balance += amount\nTransaction(INTEREST) created
+state Recorded : balance and transaction\ncommitted to database
+state Failed : failureReason stored
+
+Pending --> Calculated : calculate() [amount > 0]
+Pending --> Skipped : calculate() [amount = 0]
+Calculated --> Credited : credit()
+Credited --> Recorded : markRecorded()\n[applyTransaction committed]
+Pending --> Failed : fail(reason)
+Calculated --> Failed : fail(reason)
+Credited --> Failed : fail(reason)\n[database error -> rollback]
+
+Recorded --> [*]
+Skipped --> [*]
+Failed --> [*]
+
+note right of Calculated
+  Savings: rate = 0.0005 (0.05% / month)
+  Investment: rate = 0.05 (5% / month)
+  Cheque accounts never get an
+  InterestPayment (not InterestBearing)
+end note
+@enduml
